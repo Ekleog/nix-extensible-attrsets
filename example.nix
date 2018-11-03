@@ -111,8 +111,11 @@ let
     # implementation
 
     builder = {...}: builtins.toPath "${pkgs.bash}/bin/bash";
-    args = {...}: [ "-c" (pkgs.writeScript "test-builder"
-    "${pkgs.coreutils}/bin/env; ${pkgs.coreutils}/bin/touch $out") ];
+    args = {...}: [
+      "-c"
+      (pkgs.writeScript "test-builder"
+        "${pkgs.coreutils}/bin/env; ${pkgs.coreutils}/bin/touch $out")
+    ];
     env = {buildInputs, ...}: { inherit buildInputs; };
   };
 
