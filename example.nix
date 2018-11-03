@@ -9,19 +9,21 @@ let
   # here so that the example stays easily readable
   make-extensible = set: set // {
     __functor = self: new:
-      let metadata = self.metadata // new.metadata; in
-      self // builtins.foldl' lib.recursiveUpdate {} (
+      let
+        metadata = lib.recursiveUpdate (self.metadata or {}) (new.metadata or {});
+      in
+      self // builtins.foldl' lib.recursiveUpdate { inherit metadata; } (
         builtins.map (n:
           if n == "metadata"
-          then { inherit metadata; }
+          then {} # Already loaded metadata in the initial element from fold
           else
-            if self ? n
+            if self ? ${n}
             then {
               ${n} = args: metadata.${n}.merge (self.${n} args) (new.${n} args);
               metadata.${n}.extattrset-deps = builtins.attrNames (
                 builtins.functionArgs self.${n} //
                 builtins.functionArgs new.${n}
-              );
+              ) ++ self.metadata.${n}.extattrset-deps or [];
             }
             else {
               ${n} = new.${n};
@@ -52,6 +54,7 @@ let
     metadata.version = {
       doc = "Version of the derivation, used in the Nix store path.";
       check = builtins.isString;
+      merge = a: b: b; # Ignore default value… should be handled by nixos types?
       example = "1.0.2";
     };
 
@@ -65,6 +68,7 @@ let
     metadata.args = {
       doc = "Arguments passed to the builder.";
       check = builtins.isList;
+      merge = a: b: a ++ b;
     };
 
     outputs = {...}: ["out"];
@@ -115,6 +119,8 @@ let
   example-derivation = generic-builder {
     name = {}: "example";
     version = {}: "1.0";
+
+    # ...
   };
 in
   extract example-derivation "drv"
